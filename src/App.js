@@ -1,53 +1,72 @@
-import {useState} from 'react' 
-import './App.css';
+import { useState } from 'react'
+import iconv from 'iconv-lite';
 
-import { AppBar, Toolbar, Typography, Grid, Button } from '@material-ui/core'
-import CloudUploadIcon from '@material-ui/icons/CloudUpload';
+import { Typography, Grid, Button } from '@material-ui/core'
+import CloudDownloadIcon from '@material-ui/icons/CloudDownload';
 import { makeStyles } from '@material-ui/core/styles';
 
-const useStyle = makeStyles(theme => ({
+const useStyle = makeStyles({
   root: {
-    backgroundColor: "rgb(177, 230, 248)",
-    maxWidth: "600px",
-    margin: "auto",
     height: "100vh",
-  },
-  paragraph: {
-    padding: "20px 0"
   },
   input: {
     display: 'none',
   },
   browse: {
-    margin: "0 10px"
+    marginRight: "10px"
+  },
+  innerItem: {
+    padding: "30px",
+    border: "2px solid green",
+    borderRadius: "8px",
   }
-}))
+
+})
 
 function App() {
-  const [data, setData] = useState()
+  const [data, setData] = useState([]);
+  const [enableButton, setEnableButton] = useState(false);
 
   const classes = useStyle();
-  const uploadHandler = async(e) => {
-    e.preventDefault();
 
-    const blob = new Blob([e.target.files[0]],{type: 'text'})
-    
-    blob.text().then((data) => { console.log(data)}).catch((err) => {console.log(err)})
+
+  const uploadHandler = async (e) => {
+    e.preventDefault();
+    const file = e.target.files[0];
+    const reader = new FileReader();
+
+    reader.onload = (e) => {
+      const fileData = e.target.result;
+      fileData.split("\r\n").forEach((line) => {
+        const newLine = line + "  ";
+        setData(prevState => [...prevState, newLine]);
+      })
+
+      setEnableButton(true);
+    }
+
+    reader.readAsText(file, "cp1251");
+  }
+
+  const downloadHandler = () => {
+    const element = document.createElement('a');
+    const encodedData = iconv.encode(data.join("\r\n"), "win1251");
+
+    const url = window.URL.createObjectURL(new Blob([encodedData]));
+    element.href = url;
+    element.setAttribute('download', "PRODAGBI.TXT");
+
+    element.click();
+    setEnableButton(false);
   }
 
   return (
-
-    <div className="App">
-      <AppBar position="static">
-        <Toolbar>
-          <Typography>EKO BULGARIA EAD</Typography>
-        </Toolbar>
-      </AppBar>
-      <Grid item alignItems="center" direction="column" className={classes.root}>
-        <Grid item lg={12} className={classes.paragraph}>
+    <Grid container className={classes.root} justify="center" alignItems="center" direction="column">
+      <div className={classes.innerItem}>
+        <Grid item className={classes.paragraph} style={{ textAlign: "center", marginBottom: "10px" }}>
           <Typography>Качване на файла за ДДС</Typography>
         </Grid>
-        <Grid item lg={12}>
+        <Grid item style={{ textAlign: "center" }}>
           <input
             accept="txt"
             className={classes.input}
@@ -59,20 +78,20 @@ function App() {
           <label htmlFor="contained-button-file">
             <Button variant="contained" color="primary" component="span" className={classes.browse}>
               Browse
-        </Button>
+            </Button>
           </label>
           <Button
             variant="contained"
             color="default"
-            startIcon={<CloudUploadIcon />}
+            startIcon={<CloudDownloadIcon />}
+            onClick={downloadHandler}
+            disabled={!enableButton}
           >
-            Upload
+            Download
           </Button>
         </Grid>
-
-      </Grid>
-    </div>
-
+      </div>
+    </Grid>
   );
 }
 
